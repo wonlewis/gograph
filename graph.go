@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
+	"graph/models"
 	"log"
 	"net/http"
 	"os"
@@ -22,8 +23,9 @@ type queryBody struct {
 
 func main() {
 	es, err := GetElasticsearchClient()
+	mainLogger := log.New(os.Stdout, "main:", log.LstdFlags)
 	if err != nil {
-		log.Fatalf("Error getting response: %s", err)
+		mainLogger.Println("Error getting response: %s", err)
 	}
 	log.Println(elasticsearch.Version)
 	log.Println(es.Info())
@@ -57,8 +59,10 @@ func GetElasticsearchClient() (*elasticsearch.Client, error) {
 }
 
 func (e *Env) KeywordSearch(c *gin.Context) {
-	var request queryBody
+	var request models.GraphParam
 	if err := c.BindJSON(&request); err != nil {
+		log.Println("Invalid json request: %s", err)
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	query := `{
@@ -71,16 +75,17 @@ func (e *Env) KeywordSearch(c *gin.Context) {
 	  }
 	}`
 	res, err := e.db.Search(
-		e.db.Search.WithIndex(request.Index),
+		e.db.Search.WithIndex(request.Datasource),
 		e.db.Search.WithBody(strings.NewReader(query)),
 	)
 	if err != nil {
-		log.Fatalf("Error getting response: %s", err)
+		log.Println("Error getting response: %s", err)
 		return
 	}
 	var r map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
+		log.Println("Error decoding response: %s", err)
 		return
 	}
 	c.IndentedJSON(http.StatusOK, r)

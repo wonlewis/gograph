@@ -22,13 +22,13 @@ type FieldModel struct {
 }
 
 type GraphParam struct {
-	Queries            []string     `json:"queries"`
-	Constraints        []string     `json:"constraints"`
-	Hop                int          `json:"hop"`
-	DocCount           int          `json:"doc_count"`
-	NumberOfNeighbours int          `json:"number_of_neighbours"`
-	Datasource         string       `json:"datasource"`
-	Vertices           []FieldModel `json:"vertices"`
+	Queries            []string     `json:"queries" binding:"required"`
+	Constraints        []string     `json:"constraints" binding:"required"`
+	Hop                int          `json:"hop" binding:"required"`
+	DocCount           int          `json:"doc_count" binding:"required"`
+	NumberOfNeighbours int          `json:"number_of_neighbours" binding:"required"`
+	Datasource         string       `json:"datasource" binding:"required"`
+	Vertices           []FieldModel `json:"vertices" binding:"required"`
 }
 
 type NodeQueryModel struct {
@@ -36,7 +36,7 @@ type NodeQueryModel struct {
 	ToField            string   `json:"to_field"`
 	Values             string   `json:"values"`
 	Constraints        []string `json:"constraints"`
-	Datasource         string   `json:"datasource"`
+	Datasource         string   `json:"datasource" binding:"required"`
 	NumberOfNeighbours int      `json:"number_of_neighbours"`
 	QuerySize          int      `json:"query_size"`
 	HopLeft            int      `json:"hop_left"`

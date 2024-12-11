@@ -58,6 +58,17 @@ func GetElasticsearchClient() (*elasticsearch.Client, error) {
 	return es, nil
 }
 
+func (e *Env) ValidateQuery(c *gin.Context) {
+	var request models.GraphParam
+	if err := c.BindJSON(&request); err != nil {
+		log.Println("Invalid json request: %s", err)
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//query := request.Queries
+	e.db.Search.WithBody(strings.NewReader("aa"))
+}
+
 func (e *Env) KeywordSearch(c *gin.Context) {
 	var request models.GraphParam
 	if err := c.BindJSON(&request); err != nil {
@@ -67,10 +78,14 @@ func (e *Env) KeywordSearch(c *gin.Context) {
 	}
 	query := `{
 	  "query": {
-		"match": {
-		  "sender": {
-			"query": "tom"
-		  }
+		"bool": {
+		  "filter": [
+			{
+			  "match": {
+				"sender": "tom"
+			  }
+			}
+		  ]
 		}
 	  }
 	}`

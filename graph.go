@@ -32,6 +32,7 @@ func main() {
 	env := &Env{db: es}
 	router := gin.Default()
 	router.POST("/data", env.KeywordSearch)
+	router.POST("/validate", env.ValidateQuery)
 	err = router.Run("localhost:8080")
 	if err != nil {
 		return
@@ -47,7 +48,7 @@ func GetElasticsearchClient() (*elasticsearch.Client, error) {
 			"https://localhost:9200",
 		},
 		Username: "elastic",
-		Password: "-gN-NuCy+qmr5IowL_X_",
+		Password: "-uephdfG+o_9H=9K0D10",
 		CACert:   cert,
 	}
 	es, err := elasticsearch.NewClient(cfg)
@@ -65,8 +66,9 @@ func (e *Env) ValidateQuery(c *gin.Context) {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	//query := request.Queries
-	e.db.Search.WithBody(strings.NewReader("aa"))
+	//parsedQuery := strings.Join([]string(request.Queries), ",")
+	//boolQuery := fmt.Sprintf("{\"query\": {\"bool\": {\"filter\":[%s]}}}", parsedQuery)
+	//res := e.db.Indices.ValidateQuery
 }
 
 func (e *Env) KeywordSearch(c *gin.Context) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
@@ -41,6 +42,7 @@ func main() {
 	router := gin.Default()
 	router.POST("/data", env.KeywordSearch)
 	router.POST("/dataTyped", env.KeywordSearchTyped)
+	router.POST("/wrapper", env.WrapperQuery)
 	router.POST("/validate", env.ValidateQuery)
 	err = router.Run("localhost:8080")
 	if err != nil {
@@ -126,6 +128,47 @@ func (e *Env) KeywordSearchTyped(c *gin.Context) {
 			Query: &types.Query{
 				Match: map[string]types.MatchQuery{
 					"sender": {Query: "tom"},
+				},
+			},
+		}).Do(context.Background())
+	if err != nil {
+		log.Println("Error getting response: %s", err)
+		return
+	}
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		log.Println("Error decoding response: %s", err)
+		return
+	}
+	c.IndentedJSON(http.StatusOK, r)
+}
+
+func (e *Env) WrapperQuery(c *gin.Context) {
+	var request models.GraphParam
+	if err := c.BindJSON(&request); err != nil {
+		log.Println("Invalid json request: %s", err)
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	query := `{
+	  "bool": {
+		  "filter": [
+			{
+			  "match": {
+				"sender": "tom"
+			  }
+			}
+		  ]
+		}
+	}`
+	encodedString := base64.StdEncoding.EncodeToString([]byte(query))
+	res, err := e.dbTyped.Search().
+		Index(request.Datasource).
+		Request(&search.Request{
+			Query: &types.Query{
+				Wrapper: &types.WrapperQuery{
+					Query: encodedString,
 				},
 			},
 		}).Do(context.Background())

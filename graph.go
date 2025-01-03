@@ -115,6 +115,60 @@ func (e *Env) ValidateQuery(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, r)
 }
 
+func (e *Env) BidirectionalQuery(nodeQuery models.NodeQueryModel) (result models.QueryResultModel) {
+	var boolQuery *types.BoolQuery
+	if nodeQuery.HopLeft == 0 {
+		return models.QueryResultModel{
+			Nodes:       make([]models.NodeModel, 0),
+			Edges:       make([]models.EdgeModel, 0),
+			NodeQueries: make([]models.NodeQueryModel, 0),
+		}
+	} else {
+		boolQuery = BoolQueryForBidirectional(nodeQuery.Value, nodeQuery.FromField, nodeQuery.ToField)
+		if len(nodeQuery.Constraints) != 0 {
+			boolQuery.Filter = nodeQuery.Constraints
+		}
+	}
+	res, err := e.dbTyped.Search().
+		Index(nodeQuery.Datasource).
+		Request(&search.Request{
+			Query: &types.Query{
+				Bool: boolQuery,
+			},
+		}).Do(context.Background())
+	if err != nil {
+		log.Println("Error getting response: %s", err)
+		return
+	}
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		log.Println("Error decoding response: %s", err)
+		return
+	}
+	c.IndentedJSON(http.StatusOK, r)
+}
+
+func BoolQueryForBidirectional(value string, fromField string, toField string) *types.BoolQuery {
+	minimumShouldMatch := new(types.MinimumShouldMatch)
+	*minimumShouldMatch = 1
+	boolQuery := types.NewBoolQuery()
+	boolQuery.Should = []types.Query{
+		types.Query{
+			Match: map[string]types.MatchQuery{
+				fromField: {Query: value},
+			},
+		},
+		types.Query{
+			Match: map[string]types.MatchQuery{
+				toField: {Query: value},
+			},
+		},
+	}
+	boolQuery.MinimumShouldMatch = minimumShouldMatch
+	return boolQuery
+}
+
 func (e *Env) KeywordSearchTyped(c *gin.Context) {
 	var request models.GraphParam
 	if err := c.BindJSON(&request); err != nil {

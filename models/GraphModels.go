@@ -1,5 +1,7 @@
 package models
 
+import "github.com/elastic/go-elasticsearch/v8/typedapi/types"
+
 type NodeModel struct {
 	FieldName  string `json:"field_name"`
 	FieldValue string `json:"field_value"`
@@ -32,14 +34,20 @@ type GraphParam struct {
 }
 
 type NodeQueryModel struct {
-	FromField          string   `json:"from_field"`
-	ToField            string   `json:"to_field"`
-	Values             string   `json:"values"`
-	Constraints        []string `json:"constraints"`
-	Datasource         string   `json:"datasource" binding:"required"`
-	NumberOfNeighbours int      `json:"number_of_neighbours"`
-	QuerySize          int      `json:"query_size"`
-	HopLeft            int      `json:"hop_left"`
-	CommonFieldName    string   `json:"common_field_name"`
-	Reverse            bool     `json:"reverse"`
+	FromField          string        `json:"from_field"`
+	ToField            string        `json:"to_field"`
+	Value              string        `json:"value"`
+	Constraints        []types.Query `json:"constraints"`
+	Datasource         string        `json:"datasource" binding:"required"`
+	NumberOfNeighbours int           `json:"number_of_neighbours"`
+	QuerySize          int           `json:"query_size"`
+	HopLeft            int           `json:"hop_left"`
+	CommonFieldName    string        `json:"common_field_name"`
+	Reverse            bool          `json:"reverse"`
+}
+
+type QueryResultModel struct {
+	Nodes       []NodeModel      `json:"nodes"`
+	Edges       []EdgeModel      `json:"edges"`
+	NodeQueries []NodeQueryModel `json:"node_queries"`
 }

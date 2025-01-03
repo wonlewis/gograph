@@ -66,9 +66,26 @@ func (e *Env) ValidateQuery(c *gin.Context) {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	//parsedQuery := strings.Join([]string(request.Queries), ",")
-	//boolQuery := fmt.Sprintf("{\"query\": {\"bool\": {\"filter\":[%s]}}}", parsedQuery)
-	//res := e.db.Indices.ValidateQuery
+	parsedQuery := strings.Join([]string(request.Queries), ",")
+	boolQuery := fmt.Sprintf("{\"query\": {\"bool\": {\"filter\":[%s]}}}", parsedQuery)
+	validateQuery := e.db.Indices.ValidateQuery
+	validateQuery.WithIndex(request.Datasource)
+	validateQuery.WithQuery(boolQuery)
+	res, err := e.db.Indices.ValidateQuery(
+		e.db.Indices.ValidateQuery.WithQuery(boolQuery),
+		e.db.Indices.ValidateQuery.WithIndex(boolQuery),
+	)
+	if err != nil {
+		log.Println("Error getting response: %s", err)
+		return
+	}
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		log.Println("Error decoding response: %s", err)
+		return
+	}
+	c.IndentedJSON(http.StatusOK, r)
 }
 
 func (e *Env) KeywordSearch(c *gin.Context) {

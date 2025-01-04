@@ -77,7 +77,7 @@ func (existingGraphNodes *GraphNodes) AddNodeOnlyIfUnique(newGraphNodes GraphNod
 
 type GraphEdges []EdgeModel
 
-func (existingGraphEdges *GraphEdges) AddNodeOnlyIfUnique(newGraphEdges GraphEdges) {
+func (existingGraphEdges *GraphEdges) AddEdgeOnlyIfUnique(newGraphEdges GraphEdges) {
 	for _, newEdge := range newGraphEdges {
 		edgeDoesNotExist := true
 		for _, existingEdge := range *existingGraphEdges {
@@ -97,7 +97,7 @@ func (existingGraphEdges *GraphEdges) AddNodeOnlyIfUnique(newGraphEdges GraphEdg
 
 type NodeQueries []NodeQueryModel
 
-func (existingGraphQueries *NodeQueries) AddNodeOnlyIfUnique(newGraphQueries NodeQueries) {
+func (existingGraphQueries *NodeQueries) AddQueryOnlyIfUnique(newGraphQueries NodeQueries) {
 	for _, newGraphQuery := range newGraphQueries {
 		queryDoesNotExist := true
 		for _, existingGraphQuery := range *existingGraphQueries {

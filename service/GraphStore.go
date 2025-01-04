@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/gammazero/deque"
 	"graph/models"
 )
 
@@ -16,14 +15,14 @@ type IGraphStore interface {
 type GraphStore struct{}
 
 func (graphStore GraphStore) BFS(seedQueries []models.NodeQueryModel, bidirectionalQuery BidirectionalQuery, unidirectionalQuery UnidirectionalQuery) models.GraphData {
-	var queryQueue deque.Deque[models.NodeQueryModel]
+	var queryQueue models.NodeQueries
 	setOfVisitedNodes := make(map[models.VisitedNodeModel]struct{})
 	graphData := models.GraphData{}
 	for _, query := range seedQueries {
-		queryQueue.PushBack(query)
+		queryQueue = append(queryQueue, query)
 	}
-	for queryQueue.Len() > 0 {
-		queryNode := queryQueue.PopFront()
+	for len(queryQueue) > 0 {
+		queryNode, queryQueue := queryQueue[0], queryQueue[1:]
 		queryResult := models.QueryResultModel{}
 		queryNodeToNodeModel := models.VisitedNodeModel{
 			FromField:       queryNode.FromField,
@@ -34,16 +33,15 @@ func (graphStore GraphStore) BFS(seedQueries []models.NodeQueryModel, bidirectio
 		}
 		_, ok := setOfVisitedNodes[queryNodeToNodeModel]
 		if queryNode.CommonFieldName != "" && !ok {
-			bidirectionalQuery(queryNode)
+			queryResult = bidirectionalQuery(queryNode)
 		} else if queryNode.CommonFieldName == "" && !ok {
 			unidirectionalQuery(queryNode)
 		} else {
 			queryResult = unidirectionalQuery(queryNode)
 		}
-		graphData.Nodes
+		queryQueue.AddQueryOnlyIfUnique(queryResult.NodeQueries)
+		graphData.Nodes.AddNodeOnlyIfUnique(queryResult.Nodes)
+		graphData.Edges.AddEdgeOnlyIfUnique(queryResult.Edges)
 	}
-}
-
-func (models.GraphNodes) AddNodeOnlyIfUnique(graphNodes []models.NodeModel) {
-
+	return graphData
 }

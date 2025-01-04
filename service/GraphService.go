@@ -42,4 +42,5 @@ func (graphService *GraphService) GraphSearch(query models.GraphParam, c *gin.Co
 		}
 	}
 	nodeQueries := graphService.seedQueryService.GetSeedQueries(query)
+	return IGraphStore().BFS(nodeQueries, graphService.graphQueryDAO.BidirectionalQuery, graphService.graphQueryDAO.UnidirectionalQuery), models.ValidationResponse{}
 }

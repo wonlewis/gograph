@@ -16,7 +16,11 @@ type Env struct {
 	DbTyped *elasticsearch.TypedClient
 }
 
-type IGraphQueryDAO interface{}
+type IGraphQueryDAO interface {
+	BidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
+	UnidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
+	NodeAttributeQuery(queryParam models.NodeAttributeQueryParam) []interface{}
+}
 
 func (e *Env) BidirectionalQuery(nodeQuery models.NodeQueryModel) (result models.QueryResultModel) {
 	var boolQuery *types.BoolQuery

@@ -41,5 +41,5 @@ func (graphService *GraphService) GraphSearch(query models.GraphParam, c *gin.Co
 			ErrorMessage: models.ValidationStatus(fieldsValidity.InvalidField),
 		}
 	}
-	
+	nodeQueries := graphService.seedQueryService.GetSeedQueries(query)
 }

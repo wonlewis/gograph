@@ -47,7 +47,8 @@ type NodeQueryModel struct {
 }
 
 type ValidationResponse struct {
-	Validity     bool `json:"validity"`
+	Validity     bool   `json:"validity"`
+	InvalidField string `json:"invalid_field"`
 	ErrorMessage ValidationStatus
 }
 

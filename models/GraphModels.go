@@ -46,8 +46,24 @@ type NodeQueryModel struct {
 	Reverse            bool          `json:"reverse"`
 }
 
+type ValidationResponse struct {
+	Validity     bool `json:"validity"`
+	ErrorMessage ValidationStatus
+}
+
+type GraphData struct {
+	Nodes []NodeModel `json:"nodes"`
+	Edges []EdgeModel `json:"edges"`
+}
+
 type QueryResultModel struct {
 	Nodes       []NodeModel      `json:"nodes"`
 	Edges       []EdgeModel      `json:"edges"`
 	NodeQueries []NodeQueryModel `json:"node_queries"`
+}
+
+type NodeAttributeQueryParam struct {
+	Value      string `json:"value" binding:"required"`
+	FieldName  string `json:"field_name" binding:"required"`
+	Datasource string `json:"datasource" binding:"required"`
 }

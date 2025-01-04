@@ -15,9 +15,9 @@ type IGraphStore interface {
 
 type GraphStore struct{}
 
-func (graphStore GraphStore) BFS(seedQueries []models.NodeQueryModel, bidirectionalQuery BidirectionalQuery) models.GraphData {
+func (graphStore GraphStore) BFS(seedQueries []models.NodeQueryModel, bidirectionalQuery BidirectionalQuery, unidirectionalQuery UnidirectionalQuery) models.GraphData {
 	var queryQueue deque.Deque[models.NodeQueryModel]
-	setOfVisitedNodes := make(map[models.NodeModel]struct{})
+	setOfVisitedNodes := make(map[models.VisitedNodeModel]struct{})
 	graphData := models.GraphData{}
 	for _, query := range seedQueries {
 		queryQueue.PushBack(query)
@@ -25,11 +25,25 @@ func (graphStore GraphStore) BFS(seedQueries []models.NodeQueryModel, bidirectio
 	for queryQueue.Len() > 0 {
 		queryNode := queryQueue.PopFront()
 		queryResult := models.QueryResultModel{}
-		queryNodeToNodeModel := models.NodeModel{
-			FieldName:  queryNode.CommonFieldName,
-			FieldValue: "",
-			Datasource: "",
+		queryNodeToNodeModel := models.VisitedNodeModel{
+			FromField:       queryNode.FromField,
+			ToField:         queryNode.ToField,
+			Value:           queryNode.Value,
+			Datasource:      queryNode.Datasource,
+			CommonFieldName: queryNode.CommonFieldName,
 		}
-		if queryNode.CommonFieldName != "" && 
+		_, ok := setOfVisitedNodes[queryNodeToNodeModel]
+		if queryNode.CommonFieldName != "" && !ok {
+			bidirectionalQuery(queryNode)
+		} else if queryNode.CommonFieldName == "" && !ok {
+			unidirectionalQuery(queryNode)
+		} else {
+			queryResult = unidirectionalQuery(queryNode)
+		}
+		graphData.Nodes
 	}
+}
+
+func (models.GraphNodes) AddNodeOnlyIfUnique(graphNodes []models.NodeModel) {
+
 }

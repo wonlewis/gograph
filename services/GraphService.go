@@ -1,44 +1,54 @@
 package services
 
 import (
-	"github.com/gin-gonic/gin"
+	"fmt"
 	"graph/dao"
 	"graph/models"
 )
 
 type IGraphService interface {
-	GraphSearch(query models.GraphParam) models.GraphData
-	NodeAttributeSearch(query models.NodeAttributeQueryParam) []interface{}
+	GraphSearch(query models.GraphParam) (models.GraphData, models.ValidationResponse)
+	NodeAttributeSearch(query models.NodeAttributeQueryParam) map[string]interface{}
 }
 
 type GraphService struct {
-	seedQueryService ISeedQueryService
-	graphQueryDAO    dao.IGraphQueryDAO
+	SeedQueryService ISeedQueryService
+	GraphQueryDAO    dao.IGraphQueryDAO
 }
 
-func (graphService *GraphService) GraphSearch(query models.GraphParam, c *gin.Context) (models.GraphData, models.ValidationResponse) {
-	queryValidity := graphService.seedQueryService.ValidateQueries(query.Queries, query.Datasource)
+func (graphService *GraphService) GraphSearch(query models.GraphParam) (models.GraphData, models.ValidationResponse) {
+	queryValidity := graphService.SeedQueryService.ValidateQueries(query, query.Datasource)
 	if !queryValidity.Validity {
 		return models.GraphData{}, models.ValidationResponse{
 			Validity:     false,
 			ErrorMessage: models.ERR1,
 		}
 	}
-	constraintsValidity := graphService.seedQueryService.ValidateQueries(query.Constraints, query.Datasource)
+	constraintsValidity := graphService.SeedQueryService.ValidateQueries(query, query.Datasource)
 	if !constraintsValidity.Validity {
 		return models.GraphData{}, models.ValidationResponse{
 			Validity:     false,
 			ErrorMessage: models.ERR2,
 		}
 	}
-	fieldsValidity := graphService.seedQueryService.ValidateFields(query.Vertices, query.Datasource)
+	fieldsValidity := graphService.SeedQueryService.ValidateFields(query.Vertices, query.Datasource)
 	if !fieldsValidity.Validity {
 		return models.GraphData{}, models.ValidationResponse{
 			Validity:     false,
 			ErrorMessage: models.ValidationStatus(fieldsValidity.InvalidField),
 		}
 	}
-	nodeQueries := graphService.seedQueryService.GetSeedQueries(query)
+	nodeQueries, err := graphService.SeedQueryService.GetSeedQueries(query)
+	if err != nil {
+		return models.GraphData{}, models.ValidationResponse{
+			Validity:     false,
+			ErrorMessage: models.ValidationStatus(fmt.Sprintf("%s", err)),
+		}
+	}
 	var graphStore = GraphStore{}
-	return graphStore.BFS(nodeQueries, graphService.graphQueryDAO.BidirectionalQuery, graphService.graphQueryDAO.UnidirectionalQuery), models.ValidationResponse{}
+	return graphStore.BFS(nodeQueries, graphService.GraphQueryDAO.BidirectionalQuery, graphService.GraphQueryDAO.UnidirectionalQuery), models.ValidationResponse{}
+}
+
+func (graphService *GraphService) NodeAttributeSearch(query models.NodeAttributeQueryParam) map[string]interface{} {
+	return graphService.GraphQueryDAO.NodeAttributeQuery(query)
 }

@@ -6,23 +6,23 @@ import (
 )
 
 type ISeedQueryService interface {
-	ValidateQueries(query []string, datasource string) models.ValidationResponse
+	ValidateQueries(query models.GraphParam, datasource string) models.ValidationResponse
 	ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse
-	GetSeedQueries(query models.GraphParam) []models.NodeQueryModel
+	GetSeedQueries(query models.GraphParam) ([]models.NodeQueryModel, error)
 }
 
 type SeedQueryService struct {
-	dao.ISeedQueryDAO
+	SeedQueryDAO dao.ISeedQueryDAO
 }
 
 func (s *SeedQueryService) ValidateQueries(query models.GraphParam, datasource string) models.ValidationResponse {
-	return s.ISeedQueryDAO.ValidateQueries(query.Queries, datasource)
+	return s.SeedQueryDAO.ValidateQueries(query.Queries, datasource)
 }
 
 func (s *SeedQueryService) ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse {
-	return s.ISeedQueryDAO.ValidateFields(fields, datasource)
+	return s.SeedQueryDAO.ValidateFields(fields, datasource)
 }
 
-func (s *SeedQueryService) GetSeedQueries(query models.GraphParam) []models.NodeQueryModel {
-	return s.ISeedQueryDAO.GetSeedQueries(query)
+func (s *SeedQueryService) GetSeedQueries(query models.GraphParam) ([]models.NodeQueryModel, error) {
+	return s.SeedQueryDAO.GetSeedQueries(query)
 }

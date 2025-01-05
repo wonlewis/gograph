@@ -20,7 +20,7 @@ type ElasticSeedQueryDAO struct {
 type ISeedQueryDAO interface {
 	ValidateQueries(queries []string, datasource string) models.ValidationResponse
 	ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse
-	GetSeedQueries(query models.GraphParam) []models.NodeQueryModel
+	GetSeedQueries(query models.GraphParam) ([]models.NodeQueryModel, error)
 }
 
 func (e *ElasticSeedQueryDAO) ValidateQueries(queries []string, datasource string) models.ValidationResponse {

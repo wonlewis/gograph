@@ -20,7 +20,7 @@ type ElasticGraphQueryDAO struct {
 type IGraphQueryDAO interface {
 	BidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
 	UnidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
-	NodeAttributeQuery(queryParam models.NodeAttributeQueryParam) []interface{}
+	NodeAttributeQuery(queryParam models.NodeAttributeQueryParam) map[string]interface{}
 }
 
 func (e *ElasticGraphQueryDAO) BidirectionalQuery(nodeQuery models.NodeQueryModel) (result models.QueryResultModel) {

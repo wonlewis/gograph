@@ -1,9 +1,14 @@
 package dao
 
 import (
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/validatequery"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/ml/validate"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/gin-gonic/gin"
 	"graph/models"
@@ -17,48 +22,63 @@ type ElasticSeedQueryDAO struct {
 }
 
 type IElasticSeedQueryDAO interface {
-	ValidateQuery(query []string, datasource string) models.ValidationResponse
+	ValidateQueries(queries []string, datasource string) models.ValidationResponse
 	ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse
 	GetSeedQueries(query models.GraphParam) []models.NodeQueryModel
 }
 
-func (e *models.Env) ValidateQuery(c *gin.Context) {
-	var request models.GraphParam
-	if err := c.BindJSON(&request); err != nil {
-		log.Println("Invalid json request: %s", err)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func (e ElasticSeedQueryDAO) ValidateQueries(queries []string, datasource string) models.ValidationResponse {
+	if len(queries) == 0 {
+		return models.ValidationResponse{
+			Validity:     true,
+			InvalidField: "",
+			ErrorMessage: models.OK,
+		}
 	}
-	parsedQuery := strings.Join([]string(request.Queries), ",")
-	boolQuery := fmt.Sprintf("{\"query\": {\"bool\": {\"filter\":[%s]}}}", parsedQuery)
-	res, err := e.db.Indices.ValidateQuery(
-		e.db.Indices.ValidateQuery.WithQuery(boolQuery),
-		e.db.Indices.ValidateQuery.WithIndex(request.Datasource),
-	)
+	var ListOfQueries []types.Query
+	for _, query := range queries {
+		encodedQuery := base64.StdEncoding.EncodeToString([]byte(query))
+		wrapperQuery := &types.WrapperQuery{
+			Query: encodedQuery,
+		}
+		queryWrapped := &types.Query{
+			Wrapper: wrapperQuery,
+		}
+		ListOfQueries = append(ListOfQueries, *queryWrapped)
+	}
+	boolQuery := &types.BoolQuery{
+		Must: ListOfQueries,
+	}
+	res, err := e.Db.Indices.ValidateQuery().
+		Index(datasource).
+		Request(&validatequery.Request{
+			Query: &types.Query{
+				Bool: boolQuery,
+			},
+		}).Do(context.Background())
 	if err != nil {
 		log.Println("Error getting response: %s", err)
-		return
+		return models.ValidationResponse{
+			Validity:     false,
+			InvalidField: "",
+			ErrorMessage: models.ERR4,
+		}
 	}
 	var r map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		log.Println("Error decoding response: %s", err)
-		return
+		return models.ValidationResponse{
+			Validity:     false,
+			InvalidField: "",
+			ErrorMessage: models.ERR1,
+		}
 	}
-	nodeQuery := models.NodeQueryModel{
-		FromField:          request.Vertices[0].FromField,
-		ToField:            request.Vertices[0].ToField,
-		Value:              "tom",
-		Constraints:        nil,
-		Datasource:         request.Datasource,
-		NumberOfNeighbours: request.NumberOfNeighbours,
-		QuerySize:          request.DocCount,
-		HopLeft:            request.Hop,
-		CommonFieldName:    request.Vertices[0].CommonFieldName,
-		Reverse:            false,
+	return models.ValidationResponse{
+		Validity:     true,
+		InvalidField: "",
+		ErrorMessage: models.OK,
 	}
-	e.BidirectionalQuery(nodeQuery)
-	c.IndentedJSON(http.StatusOK, r)
 }
 
 func (e *Env) KeywordSearchTyped(c *gin.Context) {

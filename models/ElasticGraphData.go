@@ -14,6 +14,7 @@ const (
 	ERR1                  = "query is invalid"
 	ERR2                  = "constraint is invalid"
 	ERR3                  = "field does not exist"
+	ERR4                  = "error getting response from database"
 )
 
 func (validationStatus ValidationStatus) String(invalidField string) string {

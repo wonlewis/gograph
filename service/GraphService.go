@@ -20,14 +20,14 @@ type GraphService struct {
 }
 
 func (graphService *GraphService) GraphSearch(query models.GraphParam, c *gin.Context) (models.GraphData, models.ValidationResponse) {
-	queryValidity := graphService.seedQueryService.ValidateQuery(query.Queries, query.Datasource)
+	queryValidity := graphService.seedQueryService.ValidateQueries(query.Queries, query.Datasource)
 	if !queryValidity.Validity {
 		return models.GraphData{}, models.ValidationResponse{
 			Validity:     false,
 			ErrorMessage: models.ERR1,
 		}
 	}
-	constraintsValidity := graphService.seedQueryService.ValidateQuery(query.Constraints, query.Datasource)
+	constraintsValidity := graphService.seedQueryService.ValidateQueries(query.Constraints, query.Datasource)
 	if !constraintsValidity.Validity {
 		return models.GraphData{}, models.ValidationResponse{
 			Validity:     false,

@@ -1,12 +1,9 @@
-package service
+package services
 
 import (
-	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"graph/dao"
 	"graph/models"
-	"net/http"
 )
 
 type IGraphService interface {
@@ -42,5 +39,6 @@ func (graphService *GraphService) GraphSearch(query models.GraphParam, c *gin.Co
 		}
 	}
 	nodeQueries := graphService.seedQueryService.GetSeedQueries(query)
-	return IGraphStore().BFS(nodeQueries, graphService.graphQueryDAO.BidirectionalQuery, graphService.graphQueryDAO.UnidirectionalQuery), models.ValidationResponse{}
+	graphStore := GraphStore{}
+	return graphStore.BFS(nodeQueries, graphService.graphQueryDAO.BidirectionalQuery, graphService.graphQueryDAO.UnidirectionalQuery), models.ValidationResponse{}
 }

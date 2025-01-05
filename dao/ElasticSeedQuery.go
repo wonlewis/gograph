@@ -17,7 +17,7 @@ type ElasticSeedQueryDAO struct {
 	Db *elasticsearch.TypedClient
 }
 
-type IElasticSeedQueryDAO interface {
+type ISeedQueryDAO interface {
 	ValidateQueries(queries []string, datasource string) models.ValidationResponse
 	ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse
 	GetSeedQueries(query models.GraphParam) []models.NodeQueryModel

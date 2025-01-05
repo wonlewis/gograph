@@ -15,7 +15,7 @@ type ElasticGraphQueryDAO struct {
 	Db *elasticsearch.TypedClient
 }
 
-var SIZE_OF_ATTRIBUTE_QUERY = 100
+var SizeOfAttributeQuery = 100
 
 type IGraphQueryDAO interface {
 	BidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
@@ -275,7 +275,7 @@ func (e *ElasticGraphQueryDAO) NodeAttributeQuery(queryParam models.NodeAttribut
 		},
 	}
 	size := new(int)
-	*size = SIZE_OF_ATTRIBUTE_QUERY
+	*size = SizeOfAttributeQuery
 	res, err := e.Db.Search().
 		Index(queryParam.Datasource).
 		Request(&search.Request{

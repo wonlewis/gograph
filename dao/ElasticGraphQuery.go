@@ -168,61 +168,96 @@ func (e *ElasticGraphQueryDAO) UnidirectionalQuery(nodeQuery models.NodeQueryMod
 
 	}
 	aggregations := r["aggregations"].(map[string]interface{})
-	fromObjects := aggregations[nodeQuery.FromField].(map[string]interface{})["buckets"].([]interface{})
-	toObjects := aggregations[nodeQuery.ToField].(map[string]interface{})["buckets"].([]interface{})
-	allObjects := append(fromObjects, toObjects...)
+	var allObjects []interface{}
+	if nodeQuery.Reverse == true {
+		allObjects = aggregations[nodeQuery.FromField].(map[string]interface{})["buckets"].([]interface{})
+	} else {
+		allObjects = aggregations[nodeQuery.ToField].(map[string]interface{})["buckets"].([]interface{})
+	}
 	var graphNodes []models.NodeModel
 	for _, v := range allObjects {
-		graphNodes = append(graphNodes, models.NodeModel{
-			FieldName:  nodeQuery.CommonFieldName,
-			FieldValue: v.(map[string]interface{})["key"].(string),
-			Datasource: nodeQuery.Datasource,
-		})
+		if nodeQuery.Reverse == true {
+			graphNodes = append(graphNodes, models.NodeModel{
+				FieldName:  nodeQuery.FromField,
+				FieldValue: v.(map[string]interface{})["key"].(string),
+				Datasource: nodeQuery.Datasource,
+			})
+		} else {
+			graphNodes = append(graphNodes, models.NodeModel{
+				FieldName:  nodeQuery.ToField,
+				FieldValue: v.(map[string]interface{})["key"].(string),
+				Datasource: nodeQuery.Datasource,
+			})
+		}
 	}
 	if len(graphNodes) > 0 {
-		graphNodes = append(graphNodes, models.NodeModel{
-			FieldName:  nodeQuery.CommonFieldName,
-			FieldValue: nodeQuery.Value,
-			Datasource: nodeQuery.Datasource,
-		})
+		if nodeQuery.Reverse == true {
+			graphNodes = append(graphNodes, models.NodeModel{
+				FieldName:  nodeQuery.ToField,
+				FieldValue: nodeQuery.Value,
+				Datasource: nodeQuery.Datasource,
+			})
+		} else {
+			graphNodes = append(graphNodes, models.NodeModel{
+				FieldName:  nodeQuery.FromField,
+				FieldValue: nodeQuery.Value,
+				Datasource: nodeQuery.Datasource,
+			})
+		}
 	}
 	var graphQueries []models.NodeQueryModel
 	for _, v := range allObjects {
 		if nodeQuery.HopLeft > 1 {
-			graphQueries = append(graphQueries, models.NodeQueryModel{
-				FromField:          nodeQuery.FromField,
-				ToField:            nodeQuery.ToField,
-				Value:              v.(map[string]interface{})["key"].(string),
-				Constraints:        nodeQuery.Constraints,
-				Datasource:         nodeQuery.Datasource,
-				NumberOfNeighbours: nodeQuery.NumberOfNeighbours,
-				QuerySize:          nodeQuery.QuerySize,
-				HopLeft:            nodeQuery.HopLeft - 1,
-				CommonFieldName:    nodeQuery.CommonFieldName,
-				Reverse:            false,
-			})
+			if nodeQuery.Reverse == true {
+				graphQueries = append(graphQueries, models.NodeQueryModel{
+					FromField:          nodeQuery.ToField,
+					ToField:            nodeQuery.FromField,
+					Value:              v.(map[string]interface{})["key"].(string),
+					Constraints:        nodeQuery.Constraints,
+					Datasource:         nodeQuery.Datasource,
+					NumberOfNeighbours: nodeQuery.NumberOfNeighbours,
+					QuerySize:          nodeQuery.QuerySize,
+					HopLeft:            nodeQuery.HopLeft - 1,
+					CommonFieldName:    nodeQuery.CommonFieldName,
+					Reverse:            false,
+				})
+			} else {
+				graphQueries = append(graphQueries, models.NodeQueryModel{
+					FromField:          nodeQuery.FromField,
+					ToField:            nodeQuery.ToField,
+					Value:              v.(map[string]interface{})["key"].(string),
+					Constraints:        nodeQuery.Constraints,
+					Datasource:         nodeQuery.Datasource,
+					NumberOfNeighbours: nodeQuery.NumberOfNeighbours,
+					QuerySize:          nodeQuery.QuerySize,
+					HopLeft:            nodeQuery.HopLeft - 1,
+					CommonFieldName:    nodeQuery.CommonFieldName,
+					Reverse:            true,
+				})
+			}
 		}
 	}
 	var graphEdges []models.EdgeModel
-	for _, v := range fromObjects {
-		graphEdges = append(graphEdges, models.EdgeModel{
-			ToFieldName:    nodeQuery.CommonFieldName,
-			ToFieldValue:   nodeQuery.Value,
-			FromFieldName:  nodeQuery.CommonFieldName,
-			FromFieldValue: v.(map[string]interface{})["key"].(string),
-			Datasource:     nodeQuery.Datasource,
-			Frequency:      int(v.(map[string]interface{})["doc_count"].(float64)),
-		})
-	}
-	for _, v := range toObjects {
-		graphEdges = append(graphEdges, models.EdgeModel{
-			ToFieldName:    nodeQuery.CommonFieldName,
-			ToFieldValue:   v.(map[string]interface{})["key"].(string),
-			FromFieldName:  nodeQuery.CommonFieldName,
-			FromFieldValue: nodeQuery.Value,
-			Datasource:     nodeQuery.Datasource,
-			Frequency:      int(v.(map[string]interface{})["doc_count"].(float64)),
-		})
+	for _, v := range allObjects {
+		if nodeQuery.Reverse == true {
+			graphEdges = append(graphEdges, models.EdgeModel{
+				ToFieldName:    nodeQuery.CommonFieldName,
+				ToFieldValue:   nodeQuery.Value,
+				FromFieldName:  nodeQuery.CommonFieldName,
+				FromFieldValue: v.(map[string]interface{})["key"].(string),
+				Datasource:     nodeQuery.Datasource,
+				Frequency:      int(v.(map[string]interface{})["doc_count"].(float64)),
+			})
+		} else {
+			graphEdges = append(graphEdges, models.EdgeModel{
+				ToFieldName:    nodeQuery.CommonFieldName,
+				ToFieldValue:   v.(map[string]interface{})["key"].(string),
+				FromFieldName:  nodeQuery.CommonFieldName,
+				FromFieldValue: nodeQuery.Value,
+				Datasource:     nodeQuery.Datasource,
+				Frequency:      int(v.(map[string]interface{})["doc_count"].(float64)),
+			})
+		}
 	}
 	return models.QueryResultModel{
 		Nodes:       graphNodes,

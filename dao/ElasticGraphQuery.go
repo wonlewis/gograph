@@ -10,12 +10,12 @@ import (
 	"log"
 )
 
+var SizeOfAttributeQuery = 100
+
 // Env Credit on using elasticsearch client as a struct: https://github.com/gin-gonic/gin/issues/932
 type ElasticGraphQueryDAO struct {
 	Db *elasticsearch.TypedClient
 }
-
-var SizeOfAttributeQuery = 100
 
 type IGraphQueryDAO interface {
 	BidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel

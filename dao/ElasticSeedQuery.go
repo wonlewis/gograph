@@ -3,6 +3,7 @@ package dao
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/gin-gonic/gin"
 	"graph/models"
@@ -10,6 +11,16 @@ import (
 	"net/http"
 	"strings"
 )
+
+type ElasticSeedQueryDAO struct {
+	Db *elasticsearch.TypedClient
+}
+
+type IElasticSeedQueryDAO interface {
+	ValidateQuery(query []string, datasource string) models.ValidationResponse
+	ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse
+	GetSeedQueries(query models.GraphParam) []models.NodeQueryModel
+}
 
 func (e *models.Env) ValidateQuery(c *gin.Context) {
 	var request models.GraphParam

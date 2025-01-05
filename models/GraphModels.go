@@ -59,6 +59,7 @@ type ValidationResponse struct {
 	InvalidField string `json:"invalid_field"`
 	ErrorMessage ValidationStatus
 }
+
 type GraphNodes []NodeModel
 
 func (existingGraphNodes *GraphNodes) AddNodeOnlyIfUnique(newGraphNodes GraphNodes) {

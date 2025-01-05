@@ -15,6 +15,8 @@ type ElasticGraphQueryDAO struct {
 	Db *elasticsearch.TypedClient
 }
 
+var SIZE_OF_ATTRIBUTE_QUERY = 100
+
 type IGraphQueryDAO interface {
 	BidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
 	UnidirectionalQuery(nodeQuery models.NodeQueryModel) models.QueryResultModel
@@ -264,6 +266,34 @@ func (e *ElasticGraphQueryDAO) UnidirectionalQuery(nodeQuery models.NodeQueryMod
 		Edges:       graphEdges,
 		NodeQueries: graphQueries,
 	}
+}
+
+func (e *ElasticGraphQueryDAO) NodeAttributeQuery(queryParam models.NodeAttributeQueryParam) map[string]interface{} {
+	query := types.Query{
+		Match: map[string]types.MatchQuery{
+			queryParam.FieldName: {Query: queryParam.Value},
+		},
+	}
+	size := new(int)
+	*size = SIZE_OF_ATTRIBUTE_QUERY
+	res, err := e.Db.Search().
+		Index(queryParam.Datasource).
+		Request(&search.Request{
+			Query: &query,
+			Size:  size,
+		}).Do(context.Background())
+	if err != nil {
+		log.Println("Error getting response: %s", err)
+		return nil
+	}
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		log.Printf("Error decoding response: %s\n", err)
+		return nil
+
+	}
+	return r
 }
 
 func BoolQueryForBidirectional(value string, fromField string, toField string) *types.BoolQuery {

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/validatequery"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"graph/models"
@@ -118,4 +119,54 @@ func (e *ElasticSeedQueryDAO) ValidateFields(fields []models.FieldModel, datasou
 		InvalidField: "",
 		ErrorMessage: models.OK,
 	}
+}
+
+func (e *ElasticSeedQueryDAO) GetSeedQueries(query models.GraphParam) ([]models.NodeQueryModel, error) {
+	var ListOfQueries []types.Query
+	if len(query.Queries) > 0 {
+		for _, query := range query.Queries {
+			encodedQuery := base64.StdEncoding.EncodeToString([]byte(query))
+			wrapperQuery := &types.WrapperQuery{
+				Query: encodedQuery,
+			}
+			queryWrapped := &types.Query{
+				Wrapper: wrapperQuery,
+			}
+			ListOfQueries = append(ListOfQueries, *queryWrapped)
+		}
+	}
+	var listOfConstraints []types.Query
+	if len(query.Constraints) > 0 {
+		for _, query := range query.Constraints {
+			encodedQuery := base64.StdEncoding.EncodeToString([]byte(query))
+			wrapperQuery := &types.WrapperQuery{
+				Query: encodedQuery,
+			}
+			queryWrapped := &types.Query{
+				Wrapper: wrapperQuery,
+			}
+			listOfConstraints = append(listOfConstraints, *queryWrapped)
+		}
+	}
+	boolQuery := &types.BoolQuery{
+		Should: ListOfQueries,
+		Filter: listOfConstraints,
+	}
+	size := new(int)
+	*size = query.DocCount
+	res, err := e.Db.Search().
+		Index(query.Datasource).
+		Request(&search.Request{
+			Query: &types.Query{
+				Bool: boolQuery,
+			},
+			Size: size,
+		}).Do(context.Background())
+	if err != nil {
+		log.Println("Error getting response: %s", err)
+		return nil, err
+	}
+	var r map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&r)
+	return nil, nil
 }

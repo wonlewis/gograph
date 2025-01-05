@@ -26,6 +26,20 @@ func main() {
 	log.Println(es.Info())
 
 	// setting up controller, services, and DAO layers
+	var graphController controllers.GraphController
+	graphController = *SetupController(es)
+
+	router := gin.Default()
+	router.POST("/searchGraph", graphController.GraphQuery)
+	router.POST("/searchNode", graphController.NodeAttributeSearch)
+	err = router.Run("localhost:8080")
+	if err != nil {
+		return
+	}
+}
+
+func SetupController(es *elasticsearch.TypedClient) *controllers.GraphController {
+	// setting up controller, services, and DAO layers
 	var graphQueryDAO dao.ElasticGraphQueryDAO
 	graphQueryDAO.Db = es
 	var seedQueryDAO dao.ElasticSeedQueryDAO
@@ -37,14 +51,7 @@ func main() {
 	graphService.GraphQueryDAO = &graphQueryDAO
 	var graphController controllers.GraphController
 	graphController.GraphService = &graphService
-
-	router := gin.Default()
-	router.POST("/searchGraph", graphController.GraphQuery)
-	router.POST("/searchNode", graphController.NodeAttributeSearch)
-	err = router.Run("localhost:8080")
-	if err != nil {
-		return
-	}
+	return &graphController
 }
 
 func GetElasticsearchTypedClient() (*elasticsearch.TypedClient, error) {

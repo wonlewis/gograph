@@ -45,6 +45,7 @@ func (e *ElasticSeedQueryDAO) ValidateQueries(queries []string, datasource strin
 	boolQuery := &types.BoolQuery{
 		Must: ListOfQueries,
 	}
+	log.Printf("bool query: %s\n", boolQuery)
 	res, err := e.Db.Indices.ValidateQuery().
 		Index(datasource).
 		Request(&validatequery.Request{

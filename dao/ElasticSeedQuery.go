@@ -4,16 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/validatequery"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/ml/validate"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
-	"github.com/gin-gonic/gin"
 	"graph/models"
 	"log"
-	"net/http"
 	"strings"
 )
 
@@ -27,7 +22,7 @@ type IElasticSeedQueryDAO interface {
 	GetSeedQueries(query models.GraphParam) []models.NodeQueryModel
 }
 
-func (e ElasticSeedQueryDAO) ValidateQueries(queries []string, datasource string) models.ValidationResponse {
+func (e *ElasticSeedQueryDAO) ValidateQueries(queries []string, datasource string) models.ValidationResponse {
 	if len(queries) == 0 {
 		return models.ValidationResponse{
 			Validity:     true,
@@ -81,109 +76,46 @@ func (e ElasticSeedQueryDAO) ValidateQueries(queries []string, datasource string
 	}
 }
 
-func (e *Env) KeywordSearchTyped(c *gin.Context) {
-	var request models.GraphParam
-	if err := c.BindJSON(&request); err != nil {
-		log.Println("Invalid json request: %s", err)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	res, err := e.dbTyped.Search().
-		Index(request.Datasource).
-		Request(&search.Request{
-			Query: &types.Query{
-				Match: map[string]types.MatchQuery{
-					"sender": {Query: "tom"},
-				},
-			},
-		}).Do(context.Background())
-	if err != nil {
-		log.Println("Error getting response: %s", err)
-		return
-	}
-	var r map[string]interface{}
-	err = json.NewDecoder(res.Body).Decode(&r)
-	if err != nil {
-		log.Println("Error decoding response: %s", err)
-		return
-	}
-	c.IndentedJSON(http.StatusOK, r)
-}
-
-func (e *Env) WrapperQuery(c *gin.Context) {
-	var request models.GraphParam
-	if err := c.BindJSON(&request); err != nil {
-		log.Println("Invalid json request: %s", err)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	query := `{
-	  "bool": {
-		  "filter": [
-			{
-			  "match": {
-				"sender": "tom"
-			  }
-			}
-		  ]
+func (e *ElasticSeedQueryDAO) ValidateFields(fields []models.FieldModel, datasource string) models.ValidationResponse {
+	var setOfFieldsToCheck map[string]struct{}
+	for _, field := range fields {
+		_, ok := setOfFieldsToCheck[field.FromField]
+		if !ok {
+			setOfFieldsToCheck[field.FromField] = struct{}{}
 		}
-	}`
-	encodedString := base64.StdEncoding.EncodeToString([]byte(query))
-	res, err := e.dbTyped.Search().
-		Index(request.Datasource).
-		Request(&search.Request{
-			Query: &types.Query{
-				Wrapper: &types.WrapperQuery{
-					Query: encodedString,
-				},
-			},
-		}).Do(context.Background())
-	if err != nil {
-		log.Println("Error getting response: %s", err)
-		return
-	}
-	var r map[string]interface{}
-	err = json.NewDecoder(res.Body).Decode(&r)
-	if err != nil {
-		log.Println("Error decoding response: %s", err)
-		return
-	}
-	c.IndentedJSON(http.StatusOK, r)
-}
-
-func (e *Env) KeywordSearch(c *gin.Context) {
-	var request models.GraphParam
-	if err := c.BindJSON(&request); err != nil {
-		log.Println("Invalid json request: %s", err)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	query := `{
-	  "query": {
-		"bool": {
-		  "filter": [
-			{
-			  "match": {
-				"sender": "tom"
-			  }
-			}
-		  ]
+		_, ok = setOfFieldsToCheck[field.ToField]
+		if !ok {
+			setOfFieldsToCheck[field.ToField] = struct{}{}
 		}
-	  }
-	}`
-	res, err := e.db.Search(
-		e.db.Search.WithIndex(request.Datasource),
-		e.db.Search.WithBody(strings.NewReader(query)),
-	)
+	}
+	listOfFieldsToCheck := make([]string, 0, len(setOfFieldsToCheck))
+	stringOfFieldsToCheck := strings.Join(listOfFieldsToCheck, ",")
+	for key, _ := range setOfFieldsToCheck {
+		listOfFieldsToCheck = append(listOfFieldsToCheck, key)
+	}
+	res, err := e.Db.Indices.GetFieldMapping(stringOfFieldsToCheck).
+		Index(datasource).
+		Do(context.Background())
 	if err != nil {
-		log.Println("Error getting response: %s", err)
-		return
+		return models.ValidationResponse{
+			Validity:     false,
+			InvalidField: "",
+			ErrorMessage: models.ERR4,
+		}
 	}
 	var r map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
-		log.Println("Error decoding response: %s", err)
-		return
+		log.Printf("Error decoding response: %s\n", err)
+		return models.ValidationResponse{
+			Validity:     false,
+			InvalidField: "",
+			ErrorMessage: models.ERR4,
+		}
 	}
-	c.IndentedJSON(http.StatusOK, r)
+	return models.ValidationResponse{
+		Validity:     true,
+		InvalidField: "",
+		ErrorMessage: models.OK,
+	}
 }
